@@ -1,23 +1,30 @@
-function y = fanodec(code, trellis)
+function Y = fanodec(code, ConstraintLength, CodeGenerator)
+
+    % declare, initialize fano sequential decoder
+    threshold = 0;
+    delta = 8;
 
     % compute convolutional code parameters
+    trellis = poly2trellis(ConstraintLength, CodeGenerator);
     k = log2(trellis.numInputSymbols);
     n = log2(trellis.numOutputSymbols);
 
     % compute number of nodes
     numel = length(code) / n;
+    ninfo = numel-ConstraintLength+1;
     
     % resahpe received codeword vector
     code = reshape(code, [n numel]);
     
     % declare and initialize path through code tree
-    path = repmat(struct('metric',0,'state',0,'theta',1),numel,1);
+    path = repmat(struct('metric',0,'state',0,'branch',0,'theta',1), ...
+        numel+1,1);
     node = 1;
     
-    while true
+    while node <= numel
         
         % get output bits for current node in code tree
-        x = code(node, :);
+        x = code(:, node);
         
         % check whether node information or tail
         if node <= ninfo
@@ -27,30 +34,37 @@ function y = fanodec(code, trellis)
             metric = zeros(trellis.numInputSymbols, 1);
 
             % look forward to best node
-            for i = 0:trellis.numInputSymbols-1
+            for i = 1:trellis.numInputSymbols
 
                 % get coded bits from curent node given input bits
-                y = trellis.outputs(path(node), i);
+                y = -2*de2bi(trellis.outputs(path(node).state+1, i), ...
+                    n, 'left-msb')+1;
 
                 % compute branch metric
-                metric(i) = (-2.*de2bi(y, n)+1) * x;
+                metric(i) = y*x;
 
             end
 
             % find n:th best branch emanating from current node
-            [B,I] = sort(metric);
+            [B,I] = sort(metric, 'descend');
             branch_metric = B(path(node).theta);
             branch = I(path(node).theta);
             
+            % update branch emanating from current node
+            path(node).branch = branch;
             
         else
             
             % get coded bits from current node given tail bits
-            y = trellis.outputs(path(node).state, 1);
+            y = -2*de2bi(trellis.outputs(path(node).state+1, 1), ...
+                n, 'left-msb') + 1;
             
             % compute branch metric
-            branch_metric = (-2.*de2bi(y,n)+1) * x;
+            branch_metric = y*x;
             branch = 1;
+            
+            % update branch emanating from current node
+            path(node).branch = branch;
             
         end
         
@@ -69,7 +83,7 @@ function y = fanodec(code, trellis)
             
             % store path and branch metric
             path(node+1).metric = path(node).metric + branch_metric;
-            path(node+1).state = tellis.nextStates(path(node).state, ...
+            path(node+1).state = trellis.nextStates(path(node).state+1, ...
                 branch);
             path(node+1).theta = 1;
             
@@ -99,7 +113,7 @@ function y = fanodec(code, trellis)
                 % check whether previous node is part of information bits 
                 % or whether it is part of tail bits, cannot follow
                 % 'next best branch' out of tail node
-                if node <= ninformation
+                if node <= ninfo
 
                     % check if current node was reached by following
                     % worst branch emanating from previous node
@@ -115,5 +129,17 @@ function y = fanodec(code, trellis)
         end
         
     end
+    
+    % declare, initialize decoded bits array
+    Y = zeros(k, ninfo);
+    
+    % walk decoded fano path, get decoded bit matrix
+    for i = 1:ninfo
+        y = de2bi(path(i).branch-1, k, 'left-msb');
+        Y(:,i) = y(:);
+    end
+    
+    % reshape decoded bit matrix to column vector
+    Y = reshape(Y,k*ninfo,1); 
 
 end
