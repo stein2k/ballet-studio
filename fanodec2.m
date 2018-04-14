@@ -1,8 +1,22 @@
-function Y = fanodec(code, ConstraintLength, CodeGenerator)
+function Y = fanodec(code, CRCPolynomial, ConstraintLength, CodeGenerator)
 
     % declare, initialize fano sequential decoder
     threshold = 0;
     delta = 8;
+            
+    % calculate combined polynomials
+    for i = 1:size(CodeGenerator,1)
+        for j = 1:size(CodeGenerator,2)
+            tmp001 = oct2dec(CodeGenerator(i,j));
+            tmp002 = de2bi(tmp001, ConstraintLength, 'left-msb');
+            tmp003 = mod(conv(CRCPolynomial,tmp002), 2);
+            tmp004 = bi2de(tmp003, 'left-msb');
+            CodeGenerator(i,j) = tmp004;
+        end
+    end
+    
+    % calculated concatenated code constraint length
+    ConstraintLength = ConstraintLength+length(CRCPolynomial)-1;
 
     % compute convolutional code parameters
     nstates = 2^(sum(ConstraintLength)-size(ConstraintLength,2));
@@ -14,6 +28,7 @@ function Y = fanodec(code, ConstraintLength, CodeGenerator)
     % compute number of nodes
     numel = length(code) / n;
     ninfo = numel-ConstraintLength+1;
+    ntail = ConstraintLength-length(CRCPolynomial);
     
     % resahpe received codeword vector
     code = reshape(code, [n numel]);
@@ -23,26 +38,20 @@ function Y = fanodec(code, ConstraintLength, CodeGenerator)
         numel+1,1);
     node = 1;
     
-    while node <= numel
+    while node <= ninfo+ntail
         
         % get output bits for current node in code tree
         x = code(:, node);
         
         % inplace poly2trellis
-        g = oct2dec(CodeGenerator);
         outputs = zeros(numInputSymbols,1);
         nextStates = zeros(numInputSymbols,1);
         for i = 1:numInputSymbols
             register = path(node).state + bitshift(i-1, ...
                 ConstraintLength(1)-1);
             outputs(i) = bi2de(reshape(mod(sum(de2bi( ...
-                bitand(register,g)),2),2), [1 size(CodeGenerator,2)]), ...
-                'left-msb');
-%                 
-%             for j = 1:size(CodeGenerator,2)
-%                 outputs(i) = bitor(outputs(i), bitshift(mod(sum(de2bi(...
-%                     bitand(register, g(j)))),2),i-1));
-%             end
+                bitand(register,CodeGenerator), 'left-msb'), 2), 2), [1 size(...
+                CodeGenerator,2)]), 'left-msb');
             nextStates(i) = bitshift(register,-1);
         end
         
