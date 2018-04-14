@@ -23,7 +23,7 @@ function y = sim_fanodec()
         receivedBits = fanodec2(demodSignal, [1 1 1 0 1 0 1 0 1], ...
             3, [7 5]);
         % receivedBits = step(hDec, demodSignal);
-        errors = step(hError, data, receivedBits);
+%         errors = step(hError, data, receivedBits);
     end
     
 

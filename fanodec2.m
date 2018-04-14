@@ -1,4 +1,4 @@
-function Y = fanodec(code, CRCPolynomial, ConstraintLength, CodeGenerator)
+function Y = fanodec2(code, CRCPolynomial, ConstraintLength, CodeGenerator)
 
     % declare, initialize fano sequential decoder
     threshold = 0;
@@ -27,8 +27,7 @@ function Y = fanodec(code, CRCPolynomial, ConstraintLength, CodeGenerator)
 
     % compute number of nodes
     numel = length(code) / n;
-    ninfo = numel-ConstraintLength+1;
-    ntail = ConstraintLength-length(CRCPolynomial);
+    ninfo = numel-ConstraintLength+length(CRCPolynomial);
     
     % resahpe received codeword vector
     code = reshape(code, [n numel]);
@@ -38,7 +37,7 @@ function Y = fanodec(code, CRCPolynomial, ConstraintLength, CodeGenerator)
         numel+1,1);
     node = 1;
     
-    while node <= ninfo+ntail
+    while node <= numel
         
         % get output bits for current node in code tree
         x = code(:, node);
@@ -166,6 +165,10 @@ function Y = fanodec(code, CRCPolynomial, ConstraintLength, CodeGenerator)
     end
     
     % reshape decoded bit matrix to column vector
-    Y = reshape(Y,k*ninfo,1); 
+    Y = reshape(Y,k*ninfo,1);
+    
+    % remove CRC coded bits
+    Y = mod(conv(Y, CRCPolynomial),2);
+    Y = Y(1:ninfo);
 
 end
