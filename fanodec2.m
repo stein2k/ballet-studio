@@ -3,6 +3,9 @@ function Y = fanodec2(code, CRCPolynomial, ConstraintLength, CodeGenerator)
     % declare, initialize fano sequential decoder
     threshold = 0;
     delta = 8;
+    
+    % calculate constant for Fano metric
+    R = mean(abs(code));
             
     % calculate combined polynomials
     for i = 1:size(CodeGenerator,1)
@@ -68,7 +71,7 @@ function Y = fanodec2(code, CRCPolynomial, ConstraintLength, CodeGenerator)
                 y = -2*de2bi(outputs(i), n, 'left-msb')+1;
 
                 % compute branch metric
-                metric(i) = y*x;
+                metric(i) = y*x - R;
 
             end
 
@@ -86,7 +89,7 @@ function Y = fanodec2(code, CRCPolynomial, ConstraintLength, CodeGenerator)
             y = -2*de2bi(outputs(1), n, 'left-msb') + 1;
             
             % compute branch metric
-            branch_metric = y*x;
+            branch_metric = y*x - R;
             branch = 1;
             
             % update branch emanating from current node

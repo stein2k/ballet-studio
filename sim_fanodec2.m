@@ -1,21 +1,29 @@
 function y = sim_fanodec()
     
-    EsNo = 20;
-    noiseVar = 10.^(-EsNo./10);
+    % define system properties
+    InformationBits = 100;
+    Rate = 0.5 * (InformationBits/(InformationBits+8));
+    
+    % define channel properties
+    EbNodB = 6.0;
+    EbNo = 10^(EbNodB/10.0);
+    EcNodB = EbNodB + 10*log(Rate)/log(10);
+    EcNo = 10^(EcNodB/10);
+    EcnO = Rate*EbNo;
+    No = 1./EcNo;
 
     hCRCGen = comm.CRCGenerator('Polynomial', [8 7 6 4 2 0]);
     hConEnc = comm.ConvolutionalEncoder('TrellisStructure', ...
         poly2trellis(3,[7 5]), 'TerminationMethod', 'Terminated');
     hMod = comm.BPSKModulator;
     hChan = comm.AWGNChannel('NoiseMethod', ...
-        'Signal to noise ratio (Es/No)',...
-        'EsNo', EsNo);
+        'Variance', 'Variance', No);
     hDemod = comm.BPSKDemodulator('DecisionMethod', ...
-        'Approximate log-likelihood ratio', 'Variance', noiseVar);
+        'Approximate log-likelihood ratio', 'Variance', No);
     hError = comm.ErrorRate('ComputationDelay',3,'ReceiveDelay', 34);
     
     for counter = 1:20
-        data = randi([0 1],30,1);
+        data = zeros(InformationBits, 1); %randi([0 1],InformationBits,1);
         encodedData = step(hConEnc, step(hCRCGen,data));
         modSignal = step(hMod, encodedData);
         receivedSignal = step(hChan, modSignal);
