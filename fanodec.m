@@ -2,7 +2,10 @@ function Y = fanodec(code, ConstraintLength, CodeGenerator)
 
     % declare, initialize fano sequential decoder
     threshold = 0;
-    delta = 8;
+    delta = 4;
+    
+    % calculate constant for Fano metric
+    R = mean(abs(code));
 
     % compute convolutional code parameters
     nstates = 2^(sum(ConstraintLength)-size(ConstraintLength,2));
@@ -38,11 +41,6 @@ function Y = fanodec(code, ConstraintLength, CodeGenerator)
             outputs(i) = bi2de(reshape(mod(sum(de2bi( ...
                 bitand(register,g)),2),2), [1 size(CodeGenerator,2)]), ...
                 'left-msb');
-%                 
-%             for j = 1:size(CodeGenerator,2)
-%                 outputs(i) = bitor(outputs(i), bitshift(mod(sum(de2bi(...
-%                     bitand(register, g(j)))),2),i-1));
-%             end
             nextStates(i) = bitshift(register,-1);
         end
         
@@ -60,7 +58,7 @@ function Y = fanodec(code, ConstraintLength, CodeGenerator)
                 y = -2*de2bi(outputs(i), n, 'left-msb')+1;
 
                 % compute branch metric
-                metric(i) = y*x;
+                metric(i) = y*x - R;
 
             end
 
@@ -78,7 +76,7 @@ function Y = fanodec(code, ConstraintLength, CodeGenerator)
             y = -2*de2bi(outputs(1), n, 'left-msb') + 1;
             
             % compute branch metric
-            branch_metric = y*x;
+            branch_metric = y*x - R;
             branch = 1;
             
             % update branch emanating from current node

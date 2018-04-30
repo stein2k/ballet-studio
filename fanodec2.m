@@ -2,7 +2,7 @@ function Y = fanodec2(code, CRCPolynomial, ConstraintLength, CodeGenerator)
 
     % declare, initialize fano sequential decoder
     threshold = 0;
-    delta = 8;
+    delta = 1;
     
     % calculate constant for Fano metric
     R = mean(abs(code));
@@ -114,6 +114,9 @@ function Y = fanodec2(code, CRCPolynomial, ConstraintLength, CodeGenerator)
             path(node+1).metric = path(node).metric + branch_metric;
             path(node+1).state = nextStates(branch);
             path(node+1).theta = 1;
+            path(node).branch = branch;
+            
+            %path(node+1).metric
             
             % move forward
             node = node + 1;
